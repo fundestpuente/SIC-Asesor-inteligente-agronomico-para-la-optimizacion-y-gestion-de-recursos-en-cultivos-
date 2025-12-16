@@ -9,13 +9,13 @@
 
 export const API_CONFIG = {
   // IP de tu computadora en la red local
-  BASE_URL: 'http://192.168.100.31:8000',
-  
+  BASE_URL: 'http://192.168.56.1:8000',
+
   // Endpoints
   ENDPOINTS: {
     PREDICT: '/predict',
   },
-  
+
   // Timeout en milisegundos
   TIMEOUT: 30000,
 };

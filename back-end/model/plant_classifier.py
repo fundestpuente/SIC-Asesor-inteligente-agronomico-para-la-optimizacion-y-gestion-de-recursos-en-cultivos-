@@ -1,52 +1,64 @@
-import tensorflow as tf
 import numpy as np
-from PIL import Image
-import io
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
 import os
 
-# --- CONFIGURACIÓN ---
-IMG_SIZE = (224, 224)
-# Ajusta estos nombres a lo que realmente quieras detectar
-CLASS_NAMES = ['Saludable', 'Enfermedad_A', 'Enfermedad_B']
-
-# --- CARGA DEL MODELO ---
-# Usamos rutas relativas para que no falle en Windows
+# 1. Configuración básica
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "mi_modelo.h5")
+MODEL_PATH = os.path.join(BASE_DIR, "detector_de_imagen.h5")
 
-print(f"Buscando modelo en: {MODEL_PATH}")
-model = None
+# --- LISTA ORIGINAL (NO LA TOQUES, debe coincidir con las carpetas) ---
+CLASS_NAMES = ['Papa_Sana', 'Papa_Tizon', 'Pimiento_Bacteria', 'Pimiento_Sano', 'Tomate_Bacteria', 'Tomate_Sano']
 
+# --- DICCIONARIO TRADUCTOR (¡AQUÍ CAMBIAS LOS NOMBRES!) ---
+# A la izquierda: El nombre de la carpeta
+# A la derecha: Lo que quieres que vea el usuario
+NOMBRES_AMIGABLES = {
+    "Papa_Sana": "Papa Saludable ",
+    "Papa_Tizon": "Papa Enferma (Tizón) ",
+    "Pimiento_Sano": "Pimiento Saludable",
+    "Pimiento_Bacteria": "Pimiento Enfermo (Bacteriosis) ",
+    "Tomate_Sano": "Tomate Saludable",
+    "Tomate_Bacteria": "Tomate Enfermo (Bacteriosis) "
+}
+
+# 2. Cargar el modelo
+print(f"Cargando modelo de visión desde: {MODEL_PATH}")
 try:
-    if os.path.exists(MODEL_PATH):
-        model = tf.keras.models.load_model(MODEL_PATH)
-        print("¡Modelo cargado exitosamente!")
-    else:
-        print(" Error: No encuentro el archivo .h5")
+    model = load_model(MODEL_PATH)
+    print(" Modelo de visión cargado.")
 except Exception as e:
-    print(f"Error fatal cargando el modelo: {e}")
+    print(f" Error cargando modelo .h5: {e}")
+    model = None
 
-def predict_disease(image_bytes):
+def predict_disease(image_path):
     if model is None:
-        return {"error": "El modelo no está cargado en el servidor."}
+        return {"class": "Error: Modelo no cargado", "confidence": "0%"}
 
     try:
         # Procesar imagen
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        image = image.resize(IMG_SIZE)
-        img_array = tf.keras.preprocessing.image.img_to_array(image)
-        img_array = np.expand_dims(img_array, axis=0)
+        img = image.load_img(image_path, target_size=(224, 224))
+        img_array = image.img_to_array(img)
         img_array = img_array / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
         # Predecir
         predictions = model.predict(img_array)
         predicted_index = np.argmax(predictions[0])
-        confidence = float(np.max(predictions[0])) # Convertir a float nativo
+        confidence_score = np.max(predictions[0])
+
+        # Obtener el nombre técnico
+        nombre_tecnico = CLASS_NAMES[predicted_index]
         
+        # TRADUCIR AL NOMBRE AMIGABLE
+        # Si encuentra el nombre en el diccionario, lo usa. Si no, usa el técnico.
+        nombre_final = NOMBRES_AMIGABLES.get(nombre_tecnico, nombre_tecnico)
+
         return {
-            "diagnostico": CLASS_NAMES[predicted_index],
-            "confianza": round(confidence * 100, 2),
-            "mensaje": f"Detectado: {CLASS_NAMES[predicted_index]}"
+            "class": nombre_final, 
+            "confidence": f"{confidence_score * 100:.2f}%"
         }
+
     except Exception as e:
-        return {"error": f"Error procesando imagen: {str(e)}"}
+        print(f"Error prediciendo imagen: {e}")
+        return {"class": "Error en predicción", "confidence": "0%"}
