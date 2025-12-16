@@ -2,18 +2,18 @@ import joblib
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-
 from weather_api import get_weather
 from fertilizer_recommendation import recommend_fertilizer
 
+
 # Cargar artefactos
-preprocessor_X = joblib.load("model/preprocessor_X.joblib")
-scaler_y = joblib.load("model/scaler_y.joblib")
-categories = joblib.load("model/categories.joblib")
+preprocessor_X = joblib.load("back-end/model/preprocessor_X.joblib")
+scaler_y = joblib.load("back-end/model/scaler_y.joblib")
+categories = joblib.load("back-end/model/categories.joblib")
 
 # Cargar modelo
 model = tf.keras.models.load_model(
-    "model/agromind_best.keras",
+    "back-end/model/agromind_best.keras",
     custom_objects={'r2_keras': lambda y, p: y}  # Dummy para que cargue
 )
 

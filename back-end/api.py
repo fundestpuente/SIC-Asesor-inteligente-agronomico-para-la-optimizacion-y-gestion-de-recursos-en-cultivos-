@@ -6,20 +6,31 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from weather_api import get_weather 
 from fertilizer_recommendation import recommend_fertilizer
+from fastapi.middleware.cors import CORSMiddleware
 
 # Inicializar la aplicación FastAPI
 app = FastAPI(title="AgroMind API", description="API para recomendación de fertilizantes")
 
+# Configurar CORS para permitir solicitudes desde React Native / Expo
+# NOTA: "*" permite TODAS las origins - perfecto para desarrollo
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permite todas las origins (React Native, Web, etc.)
+    allow_credentials=False,  # Debe ser False cuando allow_origins es "*"
+    allow_methods=["*"],  # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Permite todos los headers
+)
+
 # --- 1. CARGA DE MODELOS (Se ejecuta al iniciar) ---
 print("Cargando cerebro de la IA...")
 try:
-    preprocessor_X = joblib.load("model/preprocessor_X.joblib")
-    scaler_y = joblib.load("model/scaler_y.joblib")
-    categories = joblib.load("model/categories.joblib")
+    preprocessor_X = joblib.load("back-end/model/preprocessor_X.joblib")
+    scaler_y = joblib.load("back-end/model/scaler_y.joblib")
+    categories = joblib.load("back-end/model/categories.joblib")
 
     # Cargar modelo Keras con la función dummy para r2_keras
     model = tf.keras.models.load_model(
-        "model/agromind_best.keras",
+        "back-end/model/agromind_best.keras",
         custom_objects={'r2_keras': lambda y, p: y} 
     )
     print("Sistema listo para recibir peticiones.")
